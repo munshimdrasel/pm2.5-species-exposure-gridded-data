@@ -39,7 +39,7 @@ location <- c ("urban", "non-urban") #change this
 # url4 <- "-rds.zip"
 # res <- as.vector(do.call(paste0,expand.grid(url1, species, url2, year, url3, location, url4)))
 
-options(timeout=600)
+options(timeout=1200)
 
 
 #download data
@@ -109,10 +109,57 @@ for (i in 1:length(rds_files_non_urban)) {
     df.list[[j]] <- conc
     
   }  
-   
   save(df.list, file=paste0("./data/",selected.species, "-", sub("^([^-]+-){4}([^-]+).*", "\\2", rds_files_non_urban[i]),".RData"))
 
 }
+
+
+
+#i have created output directory manually inside of data directory then 
+#inside of output directory I created species (so4) directory and put all years output files inside of species directory
+
+#combining all years data into one file
+
+selected.species <- "so4"
+all.files = as.vector(list.files(path = paste0("./data/output/",selected.species),   pattern = "*.RData",  full.names = TRUE))
+
+all.list <- list()
+
+for (i in 1:length(all.files)) {
+  load(all.files[i])
+  all <- do.call (rbind, df.list) #df.list is file name I saved as list file
+  #taking only texas data
+  all.tx <- all %>%  filter (state=="TX")
+  all.list[[i]] <- all.tx
+  
+}
+
+combined.years <-  do.call (rbind, all.list) #combining all years data
+
+# ggplot( combined.years) + geom_sf( aes( fill = layer,  geometry = geometry),
+#                        color = NA) +scale_fill_viridis_c( option="plasma")
+
+
+save(combined.years, file=paste0("./data/output/",selected.species,"/combined.so4.block.groups.RData")) #saving as combined file as list
+
+#loading combined files
+load (paste0("./data/output/",selected.species,"/combined.so4.block.groups.RData"))
+
+
+plot <- combined.years  %>% ggplot() + geom_sf( aes( fill = layer,  geometry = geometry),
+                       color = NA) +scale_fill_viridis_c(limits=c(0, 5),
+                                                         name = expression(paste(SO[4]^-2, " ug/", m^3)), option="plasma") 
+
+# animate(plot, height = 800, width =800)
+# anim_save("plot.gif")
+
+ggsave("tx.so4.2010.png", path = "./plots/", width=8, height=6, units="in")
+
+
+#+transition_time(year) +
+#   ggtitle('Year: {frame_time}')
+# 
+# anim_save("./plots/tx.so4.gif", p)
 
 
 # load (paste0("./data/",selected.species, "-", sub("^([^-]+-){4}([^-]+).*", "\\2", rds_files_non_urban[i]),".RData"))
